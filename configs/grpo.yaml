@@ -1,0 +1,28 @@
+# 二期 M6：OPD → GRPO 顺序课程
+# 用法：python scripts/run_experiment.py --config configs/grpo.yaml --phase2
+# 从 M3 最优 LSM checkpoint（LoRA adapter）热启动；教师模型完全不加载。
+inherits: base.yaml
+
+experiment:
+  name: grpo
+  mode: grpo
+
+# 热启动的 OPD checkpoint：M3 最优 LSM adapter（lsm_k8，全量 acc 0.8234）
+init_adapter: runs/lsm_k8/adapters/final
+
+grpo:
+  G: 8                      # 每 prompt 采样 G 条，组内 advantage；G≥8
+  beta: 0.02                # KL-to-ref 系数，起步 0.01–0.05；训练崩（KL 爆）则调大一档
+  clip_eps: 0.2             # 重要性比 clip(1±ε)
+  adv_eps: 1.0e-8           # 组内 std 归一化 eps；std 过小（零方差组）整组跳过
+  temperature: 1.0          # 采样温度；大面积零方差组时调高
+  top_p: 1.0
+  # 生成长度沿用 generation.max_new_tokens（512）：截断会让 #### 提取失败、reward 恒 0
+
+# 二期训练规模：短训固定步数；lr 比一期低一个量级（1e-6–1e-7）
+distill:
+  prompts_per_iter: 32      # 每 iter 32 prompt × G=8 = 256 条轨迹
+  inner_steps: 4
+  iterations: 15
+  lr: 5.0e-7
+  kl_drift_threshold: 0.05

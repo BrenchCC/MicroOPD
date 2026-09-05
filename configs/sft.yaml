@@ -1,0 +1,23 @@
+# M2 Baseline 1：教师轨迹 SFT（离线蒸馏对照）
+inherits: base.yaml
+
+experiment:
+  name: sft
+  mode: sft
+
+distill:
+  loss: sft
+  # iterations 在 SFT 模式只决定教师造数规模：64×30=1920 条教师轨迹
+  iterations: 30
+  inner_steps: 1            # 每个 epoch 一整遍
+
+# epoch 数独立于此：1353 条（过滤后）× 6 epoch ≈ 8100 样本次更新，
+# 与 OPD 组 7680 样本次大致对齐（等算力对照）
+sft_epochs: 6
+
+# 拒绝采样：只保留含 #### 可解析答案的教师轨迹（截断轨迹会教坏收尾格式，实测）
+sft:
+  filter_no_answer: true
+
+eval:
+  every: 1

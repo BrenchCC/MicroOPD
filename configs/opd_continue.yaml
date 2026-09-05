@@ -1,0 +1,13 @@
+# M6 对照组：pure OPD 续训（与 GRPO 同一 checkpoint、同等迭代数）
+# 用法：python scripts/run_experiment.py --config configs/opd_continue.yaml
+inherits: base.yaml
+
+experiment:
+  name: opd_continue
+
+# 与 grpo.yaml 同一热启动点（M3 最优 LSM adapter）
+init_adapter: runs/lsm_k8/adapters/final
+
+# 与 GRPO 等步数对照：15 iterations
+distill:
+  iterations: 15

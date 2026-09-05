@@ -1,0 +1,12 @@
+vllm==0.8.5.post1
+transformers>=4.51,<5
+peft
+accelerate
+datasets
+bitsandbytes
+pyyaml
+matplotlib
+pytest
+math-verify
+numpy
+nvidia-ml-py

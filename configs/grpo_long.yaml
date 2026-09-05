@@ -1,0 +1,14 @@
+# M6 加规模检验：GRPO 长训（4× 数据量）
+# 动机：短训（grpo.yaml，15 iter × 32 prompts × lr 5e-7）下 ratio_mean≈1.0000，
+# 策略几乎未动，命题"verifier 信号突破蒸馏平台"未被检验。本配置把扰动幅度
+# 拉到可测区间：lr 取 GRPO 区间上沿 1e-6，iterations 翻倍，prompts 翻倍。
+# 用法：python scripts/run_experiment.py --config configs/grpo_long.yaml --phase2
+inherits: grpo.yaml
+
+experiment:
+  name: grpo_long
+
+distill:
+  prompts_per_iter: 64      # 32 → 64（每 iter 64 prompt × G=8 = 512 条轨迹）
+  iterations: 30            # 15 → 30（共 240 optimizer steps，短训为 112）
+  lr: 1.0e-6                # 5e-7 → 1e-6（GRPO 区间 1e-6–1e-7 上沿）

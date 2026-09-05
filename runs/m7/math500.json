@@ -1,0 +1,17 @@
+{
+  "base": {
+    "accuracy": 0.486,
+    "avg_len": 382.862,
+    "n": 500
+  },
+  "lsm_k8": {
+    "accuracy": 0.468,
+    "avg_len": 399.264,
+    "n": 500
+  },
+  "grpo": {
+    "accuracy": 0.466,
+    "avg_len": 396.83,
+    "n": 500
+  }
+}

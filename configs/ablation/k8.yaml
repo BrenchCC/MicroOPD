@@ -1,0 +1,7 @@
+# M3 消融：LSM K=8
+inherits: ../base.yaml
+experiment:
+  name: lsm_k8
+distill:
+  K: 8
+  loss: lsm

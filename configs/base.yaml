@@ -1,0 +1,75 @@
+# MicroOPD 基础配置 —— 一期纯 OPD 的默认实验
+# 所有超参只能在这里（或继承它的配置）修改，代码里不许写死。
+# 训练规模默认值（prompts_per_iter / inner_steps / iterations / eval 题数）
+# 均为保守起点，以 M1 实测吞吐校准后再调。
+
+experiment:
+  name: base
+  mode: opd                # opd | sft（sft = M2 教师轨迹 SFT baseline；GRPO 走 configs/grpo.yaml + --phase2）
+  seed: 42
+  device: cuda
+
+models:
+  teacher: pretrained/Qwen3-8B-FP8  # 官方 FP8 预量化（动态量化路径会先把 BF16 权重全量上卡，16GB 装不下）
+  student: pretrained/Qwen3-1.7B
+  teacher_quantization: null   # null = 从 checkpoint 的 quantization_config 自动识别（fp8 block-wise）
+  enable_thinking: false      # non-thinking，与 max_new_tokens=256 预算自洽
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.0
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+vllm:
+  # 教师 FP8 权重实测 8.80 GiB，util 0.70 余量贴边（KV 分配偶发失败）→ 0.75；
+  # 打分是 prefill 为主的单次前向，eager 模式省掉 CUDA graph 捕获的显存与时间
+  gpu_memory_utilization_teacher: 0.75
+  teacher_enforce_eager: true
+  gpu_memory_utilization_student: 0.75
+  max_model_len: 1024
+  student_weight_sync: lora   # lora（LoRARequest）| merge（merge adapter 后重载，退路）
+
+data:
+  dataset: openai/gsm8k
+  subset: main
+  train_split: train
+  eval_split: test
+
+# 学生 rollout 采样参数（on-policy 需要随机采样）
+generation:
+  # 协议修正（M2 实证）：256 与教师 non-thinking 实际长度（均值 202、32.5% 截断）
+  # 不自洽——verbose 风格蒸馏迁移后学生在 256 预算内收不了尾，acc 被人为压低。
+  # 训练/评测统一 512（max_model_len 1024 仍覆盖 prompt+512）。
+  max_new_tokens: 512
+  temperature: 1.0
+  top_p: 1.0
+
+# 评测协议（写死进 config，M0 验收项）：贪婪解码、0-shot、#### 后数值提取
+eval:
+  temperature: 0.0
+  top_p: 1.0
+  shots: 0
+  every: 5                  # 每 5 个 iteration 评一次
+  num_questions: 100        # 以 M1 实测吞吐校准；全量 test 为 1319
+
+distill:
+  K: 64                     # 教师 top-K 支撑集大小
+  loss: lsm                 # lsm | naive_topk | entropy_gate
+  prompts_per_iter: 64      # 每 iteration 采样多少条 prompt，以 M1 实测吞吐校准
+  G: 1                      # 一期每 prompt 采 1 条轨迹
+  inner_steps: 8            # N：每轮 rollout 后的内层更新步数（PPO 同构）
+  iterations: 15            # 15×8×16 = 1920 优化步；M2/M3 所有 OPD 组统一（M3 可直接复用 M2 的 K=64 两格）
+  lr: 1.0e-5                # 8-bit AdamW；loss 发散先降到 1e-5 量级
+  batch_size: 1             # 激活显存按 bs=1 + grad checkpointing 预算
+  grad_accum: 4
+  chunk_size: 64            # 学生 full-vocab logits 分 chunk（每 64 token 一段）
+  max_grad_norm: 1.0
+  kl_drift_threshold: 0.05  # KL 漂移阈值，超阈值提前进入下一轮 rollout
+
+entropy_gate:
+  gain: 4.0                 # sigmoid 增益
+  threshold: 1.0            # 特征 f = H/logK + (1-mass)，f 超阈值则偏向 forward KL
+
+logging:
+  run_root: runs            # 每次实验：runs/<name>/{config.yaml,metrics.jsonl,eval.jsonl,figs/,adapters/,cache/}

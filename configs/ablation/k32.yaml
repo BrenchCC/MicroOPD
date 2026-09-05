@@ -1,0 +1,7 @@
+# M3 消融：LSM K=32
+inherits: ../base.yaml
+experiment:
+  name: lsm_k32
+distill:
+  K: 32
+  loss: lsm

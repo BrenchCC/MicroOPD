@@ -1,0 +1,7 @@
+# M3 消融：LSM K=64（与 base.yaml 等价，独立名字便于出图对齐）
+inherits: ../base.yaml
+experiment:
+  name: lsm_k64
+distill:
+  K: 64
+  loss: lsm

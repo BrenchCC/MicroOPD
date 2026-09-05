@@ -1,0 +1,10 @@
+# M4（可选）：熵感知门控对照 —— LSM + entropy gate，K=64
+# 对照组是 M2 的 base（LSM K=64 无门控），其余完全一致
+inherits: ../base.yaml
+
+experiment:
+  name: lsm_gate_k64
+
+distill:
+  loss: entropy_gate
+  K: 64

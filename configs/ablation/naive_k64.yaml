@@ -1,0 +1,7 @@
+# M3 消融：naive top-K OPD K=64（截断不归一化，对照 baseline）
+inherits: ../base.yaml
+experiment:
+  name: naive_k64
+distill:
+  K: 64
+  loss: naive_topk

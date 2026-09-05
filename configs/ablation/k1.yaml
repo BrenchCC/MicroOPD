@@ -1,0 +1,8 @@
+# M3 消融：LSM K=1（退化为教师 argmax 交叉熵 ≈ SFT）
+# K=1 时支撑集单元化、重归一化是恒等变换，naive ≡ LSM，该格两边共用，不重复训练。
+inherits: ../base.yaml
+experiment:
+  name: lsm_k1
+distill:
+  K: 1
+  loss: lsm
